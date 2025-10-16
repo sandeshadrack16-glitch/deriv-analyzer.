@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deriv Cycle Predictor</title>
+    <!-- 
+        All CSS is placed directly inside the <style> block 
+        to ensure the analyzer loads correctly without file path errors.
+    -->
+    <style>
+        :root {
+            --primary-color: #3B82F6; /* Blue */
+            --background-dark: #1F2937; /* Dark Gray */
+            --card-background: #374151; /* Slightly lighter gray for cards */
+            --text-light: #F9FAFB;
+            --text-secondary: #D1D5DB;
+            --text-accent: #FBBF24; /* Amber/Yellow for warnings */
+            --success-color: #10B981; /* Green for GO signal */
+            --danger-color: #EF4444; /* Red for Stop */
+            --border-radius: 0.5rem;
+            --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            font-size: 2.2rem;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* --- Controls & Status --- */
+
+        .status-message {
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-align: center;
+            display: none; /* Controlled by JS */
+        }
+
+        .controls-panel {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        select, input[type="range"] {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #4B5563;
+            background-color: #1F2937;
+            color: var(--text-light);
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        select {
+            width: 180px;
+        }
+
+        .slider-group {
+            flex-grow: 1;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .action-button {
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            background-color: var(--success-color);
+            color: var(--background-dark);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .action-button:hover {
+            background-color: #059669;
+            transform: translateY(-1px);
+        }
+
+        .action-button.stop {
+            background-color: var(--danger-color);
+        }
+        .action-button.stop:hover {
+            background-color: #B91C1C;
+        }
+        
+        .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* --- Main Display --- */
+
+        .main-display {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-display {
+                grid-template-columns: 1fr;
+            }
+            .controls-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            select {
+                width: 100%;
+            }
+        }
+
+        .signal-card {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            text-align: center;
+        }
+
+        .signal-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .digit-circle {
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            font-size: 3rem;
+            font-weight: 800;
+            background-color: var(--primary-color);
+            color: var(--background-dark);
+        }
+
+        .signal-status {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+        
+        /* --- Cycle Status & Countdown Styling --- */
+        
+        .entry-status {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .entry-signal {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-align: center;
+            margin: 10px 0;
+            min-height: 100px; /* Ensure visual stability */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .entry-signal.countdown {
+            color: var(--text-accent);
+        }
+        
+        /* Large Countdown Number Display */
+        .entry-signal[data-time]::after {
+            content: attr(data-time);
+            font-size: 6rem; /* Huge number */
+            font-weight: 900;
+            display: block;
+            margin-top: 10px;
+            line-height: 1.2;
+        }
+        
+        .entry-signal.final-signal {
+            color: var(--success-color);
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 2px solid var(--success-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            animation: pulse-green 1s infinite alternate;
+        }
+
+        @keyframes pulse-green {
+            from { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            to { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        }
+
+        .cycle-info {
+            font-size: 0.8rem;
+            color: #6B7280;
+            margin-top: 10px;
+        }
+
+        /* --- Data Panel (Table and History) --- */
+        
+        .data-panel {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .data-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .data-card {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .data-card h2 {
+            margin-top: 0;
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            border-bottom: 1px solid #4B5563;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Probability Table */
+        .probability-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .probability-table th, .probability-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #4B5563;
+        }
+        
+        .probability-table th {
+            color: var(--primary-color);
+            font-weight: 700;
+            background-color: #2D3748;
+        }
+        
+        .probability-table td {
+            color: var(--text-light);
+        }
+
+        .probability-table .highlight-digit td {
+            background-color: rgba(59, 130, 246, 0.1); /* Light blue background */
+            font-weight: 600;
+        }
+
+        /* Tick History */
+        .tick-history-stream {
+            height: 150px;
+            overflow-x: scroll;
+            overflow-y: hidden;
+            white-space: nowrap;
+            padding: 10px 0;
+            border: 1px solid #4B5563;
+            border-radius: var(--border-radius);
+            background-color: #2D3748;
+            scrollbar-width: none; /* Firefox */
+        }
+        .tick-history-stream::-webkit-scrollbar {
+            display: none; /* Chrome, Safari */
+        }
+
+        .tick-digit {
+            display: inline-block;
+            width: 25px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-light);
+            border-right: 1px solid #4B5563;
+            line-height: 25px;
+        }
+        .tick-digit:last-child {
+            border-right: none;
+            background-color: var(--text-accent);
+            color: var(--background-dark);
+            font-weight: 700;
+        }
+    </style>
+    
+</head>
+<body>
+
+    <div id="app" class="container">
+        
+        <header>
+            <h1>Deriv Tick Cycle Analyzer</h1>
+            <p>Predicting next-digit entry using window frequency analysis. Cycle: 20s Prep / 16s Entry.</p>
+        </header>
+
+        <!-- Status Message -->
+        <div id="statusMessage" class="status-message">Ready. Select options and press Start Analysis.</div>
+
+        <div class="controls-panel">
+            
+            <div class="control-group">
+                <label for="marketSelect">Synthetic Market:</label>
+                <select id="marketSelect">
+                    <option value="R_10">Range Break 10</option>
+                    <option value="R_25" selected>Range Break 25</option>
+                    <option value="R_50">Range Break 50</option>
+                    <option value="R_100">Range Break 100</option>
+                </select>
+            </div>
+
+            <div class="control-group slider-group">
+                <label for="ticksInput">Analysis Ticks Window (Current: <span id="windowSizeDisplay">64</span>)</label>
+                <input type="range" id="ticksInput" min="10" max="100" value="64">
+            </div>
+
+            <button id="startStopBtn" class="action-button">Start Analysis</button>
+
+        </div>
+
+        <div class="main-display">
+
+            <!-- Primary Signal Card (Most Appearing Digit) -->
+            <div class="signal-card most-frequent">
+                <p class="signal-label">Most Appearing Digit in Window (<span id="currentWindowSize">0</span> Ticks)</p>
+                <!-- This green circle shows the digit with the highest current frequency -->
+                <div id="signalDigit" class="digit-circle">--</div>
+                <div id="signalText" class="signal-status">Waiting for Data</div>
+            </div>
+
+            <!-- Cycle Status and Entry Signal (Handles 20s Countdown & 16s Entry) -->
+            <div class="signal-card entry-status">
+                <p class="signal-label">Next Entry Cycle Status</p>
+                <div id="entrySignal" class="entry-signal">
+                    Press 'Start Analysis' to begin cycle
+                </div>
+                <p class="cycle-info">
+                    The cycle transitions from **ANALYSIS** $\rightarrow$ **20s PREP** (countdown) $\rightarrow$ **16s ENTRY** $\rightarrow$ **ANALYSIS**.
+                </p>
+            </div>
+        </div>
+
+        <div class="data-panel">
+            <!-- Probability Table -->
+            <div class="data-card">
+                <h2>Digit Probability Analysis</h2>
+                <div id="probabilityTableContainer" class="table-container">
+                    <!-- Table content generated by script.js -->
+                </div>
+            </div>
+            
+            <!-- Tick History -->
+            <div class="data-card history-card">
+                <h2>Tick History (Latest Digit Stream)</h2>
+                <div id="tickHistory" class="tick-history-stream">
+                    <!-- Tick digits appended here -->
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- 
+        All JavaScript logic is placed directly inside the <script> block 
+        to ensure the analyzer functions correctly without file path errors.
+    -->
+    <script>
+        // =======================================================
+        // 1. CONFIGURATION & STATE
+        // =======================================================
+
+        // IMPORTANT: Your token has been inserted here.
+        const API_TOKEN = "94K1yepviwtvK1e"; 
+        const APP_ID = 106984; 
+
+        let isRunning = false;
+        let tickHistory = []; 
+        let windowSize = 64; 
+        let currentMarket = 'R_25';
+        let simulationInterval = null;
+
+        // NEW CYCLE CONSTANTS
+        const PREPARATION_TIME_SEC = 20; // Time before the entry signal appears
+        const ENTRY_TIME_SEC = 16;       // Time the signal remains active
+
+        // State for the new cycle
+        let predictionCycleInterval = null;
+        let currentPhase = 'ANALYSIS'; // 'ANALYSIS', 'PREPARATION', 'ENTRY'
+        let cycleTimer = 0;
+        let predictedDigit = null; // The digit calculated during the 'ANALYSIS' phase
+
+        // Signal threshold: Next most frequent digit must hit this percentage
+        const SIGNAL_THRESHOLD_PERCENT = 12.5; 
+
+        // UI Element References 
+        const startStopBtn = document.getElementById('startStopBtn');
+        const marketSelect = document.getElementById('marketSelect');
+        const ticksInput = document.getElementById('ticksInput');
+        const windowSizeDisplay = document.getElementById('windowSizeDisplay');
+        const tickHistoryEl = document.getElementById('tickHistory');
+        const probabilityTableContainer = document.getElementById('probabilityTableContainer');
+        const signalDigitEl = document.getElementById('signalDigit');
+        const signalTextEl = document.getElementById('signalText');
+        const entrySignalEl = document.getElementById('entrySignal');
+        const statusMessageEl = document.getElementById('statusMessage');
+        const currentWindowSizeEl = document.getElementById('currentWindowSize');
+
+
+        // =======================================================
+        // 2. CORE LOGIC
+        // =======================================================
+
+        /**
+         * Starts the main tick stream simulation.
+         */
+        function startStream() {
+            if (isRunning) return;
+            
+            currentMarket = marketSelect.value;
+            windowSize = parseInt(ticksInput.value, 10);
+            
+            setStatus(`Initializing analysis for ${currentMarket}...`, 'var(--text-accent)');
+            startStopBtn.disabled = true;
+
+            // 1. Initialize Ticks History
+            // Fill with random data to meet the window size requirement
+            tickHistory = Array.from({ length: windowSize }, () => Math.floor(Math.random() * 10));
+            
+            // 2. Start the Tick Stream Simulation (1 tick per second)
+            simulationInterval = setInterval(simulateTick, 1000); 
+            
+            // 3. Start the main prediction cycle timer
+            startPredictionCycle();
+            
+            isRunning = true;
+            updateStartStopButton();
+            setStatus(`Streaming ticks for ${currentMarket} (Window: ${windowSize} ticks). Cycle: ANALYSIS.`, 'var(--success-color)');
+            
+            // Initial display update
+            analyzeAndDisplay();
+        }
+
+        /**
+         * Stops the simulation and resets the cycle.
+         */
+        function stopStream() {
+            if (!isRunning) return;
+            
+            clearInterval(simulationInterval);
+            clearInterval(predictionCycleInterval);
+            
+            simulationInterval = null;
+            predictionCycleInterval = null;
+            isRunning = false;
+            updateStartStopButton();
+            setStatus('Analysis Stopped.', 'var(--danger-color)');
+            
+            // Reset signal display
+            signalDigitEl.textContent = '--';
+            signalTextEl.textContent = 'Waiting for Data';
+            entrySignalEl.textContent = 'Press \'Start Analysis\' to begin cycle';
+            entrySignalEl.className = 'entry-signal';
+        }
+
+        /**
+         * Simulates receiving a new tick, updates history, and triggers analysis.
+         */
+        function simulateTick() {
+            const newDigit = Math.floor(Math.random() * 10);
+            
+            tickHistory.push(newDigit);
+            if (tickHistory.length > windowSize) {
+                tickHistory.shift();
+            }
+            
+            analyzeAndDisplay();
+        }
+
+        /**
+         * Core analysis function: counts digit frequencies and identifies top signals.
+         */
+        function analyzeDigits(ticks) {
+            const counts = new Array(10).fill(0);
+            ticks.forEach(digit => {
+                if (digit >= 0 && digit <= 9) {
+                    counts[digit]++;
+                }
+            });
+
+            const frequencies = counts.map((count, digit) => ({
+                digit,
+                count,
+                frequency: (count / ticks.length) * 100
+            })).sort((a, b) => b.count - a.count);
+
+            const mostFrequent = frequencies[0];
+            const nextMostFrequent = frequencies.length > 1 ? frequencies[1] : frequencies[0];
+
+            return { frequencies, mostFrequent, nextMostFrequent };
+        }
+
+
+        // --- PREDICTION CYCLE STATE MACHINE ---
+
+        function startPredictionCycle() {
+            if (predictionCycleInterval) clearInterval(predictionCycleInterval);
+            
+            currentPhase = 'ANALYSIS';
+            cycleTimer = 0;
+            
+            predictionCycleInterval = setInterval(handleCycleTick, 1000);
+        }
+
+        function handleCycleTick() {
+            if (!isRunning) return;
+
+            const { nextMostFrequent } = analyzeDigits(tickHistory);
+            // Signal is found if the next most frequent digit hits the threshold
+            const isSignalFound = nextMostFrequent.frequency >= SIGNAL_THRESHOLD_PERCENT;
+
+            cycleTimer++;
+
+            // STATE 1: ANALYSIS (Default State, runs constantly)
+            if (currentPhase === 'ANALYSIS') {
+                if (isSignalFound) {
+                    predictedDigit = nextMostFrequent.digit;
+                    currentPhase = 'PREPARATION';
+                    cycleTimer = 0; // Reset timer for the new phase
+                    setStatus(`Signal Found! Starting ${PREPARATION_TIME_SEC}s Preparation for DIGIT ${predictedDigit}.`, 'var(--text-accent)');
+                }
+                
+                // Update display to show current analysis state
+                entrySignalEl.textContent = `Next Hottest: ${nextMostFrequent.digit} at ${nextMostFrequent.frequency.toFixed(2)}% (Target > ${SIGNAL_THRESHOLD_PERCENT}%)`;
+                entrySignalEl.className = 'entry-signal';
+                entrySignalEl.removeAttribute('data-time'); // Ensure timer is hidden
+            }
+
+            // STATE 2: PREPARATION (20-second countdown)
+            else if (currentPhase === 'PREPARATION') {
+                const remaining = PREPARATION_TIME_SEC - cycleTimer;
+                
+                // Update the text and the data-time attribute for the big number display
+                entrySignalEl.textContent = `Next prediction in:`;
+                entrySignalEl.setAttribute('data-time', `${Math.max(0, remaining)}s`); // Use Math.max(0, remaining) to prevent negative time display
+                entrySignalEl.className = 'entry-signal active countdown';
+                
+                if (remaining <= 0) {
+                    currentPhase = 'ENTRY';
+                    cycleTimer = 0; // Reset timer for the new phase
+                    entrySignalEl.removeAttribute('data-time'); // Clear timer attribute
+                    setStatus(`Entry Window OPEN for DIGIT ${predictedDigit}! (${ENTRY_TIME_SEC}s)`, 'var(--success-color)');
+                }
+            }
+
+            // STATE 3: ENTRY (16-second entry window)
+            else if (currentPhase === 'ENTRY') {
+                const remaining = ENTRY_TIME_SEC - cycleTimer;
+                entrySignalEl.textContent = `DIGIT ${predictedDigit} ENTRY NOW! (${Math.max(0, remaining)}s remaining)`;
+                entrySignalEl.className = 'entry-signal active final-signal';
+                entrySignalEl.removeAttribute('data-time'); // Ensure timer is hidden
+                
+                if (remaining <= 0) {
+                    currentPhase = 'ANALYSIS';
+                    cycleTimer = 0; // Reset timer for the new phase
+                    predictedDigit = null; // Clear the previous prediction
+                    setStatus(`Entry Window Closed. Back to ANALYSIS.`, 'var(--text-secondary)');
+                    // Re-run analyzeAndDisplay to refresh the entry signal
+                    analyzeAndDisplay(); 
+                }
+            }
+        }
+
+
+        /**
+         * Updates all UI components (history, table, and signals) with current analysis.
+         */
+        function analyzeAndDisplay() {
+            if (tickHistory.length === 0) {
+                signalTextEl.textContent = 'Gathering data...';
+                return;
+            }
+
+            const { frequencies, mostFrequent } = analyzeDigits(tickHistory);
+            
+            // --- 1. Update Signal Card ---
+            signalDigitEl.textContent = mostFrequent.digit;
+            signalTextEl.textContent = `Most Frequent: ${mostFrequent.frequency.toFixed(2)}%`;
+            
+            // --- 2. Update History ---
+            tickHistoryEl.innerHTML = tickHistory.map(d => 
+                `<span class="tick-digit">${d}</span>`
+            ).join('');
+            
+            // Auto-scroll to show the latest tick
+            tickHistoryEl.scrollLeft = tickHistoryEl.scrollWidth;
+
+            // --- 3. Update Table ---
+            currentWindowSizeEl.textContent = tickHistory.length;
+            renderProbabilityTable(frequencies, mostFrequent.digit);
+        }
+
+        /**
+         * Generates and injects the HTML table for digit probabilities.
+         */
+        function renderProbabilityTable(frequencies, mostFrequentDigit) {
+            let html = '<table class="probability-table">';
+            html += '<thead><tr><th>Digit</th><th>Count</th><th>Frequency (%)</th><th>Status</th></tr></thead>';
+            html += '<tbody>';
+
+            frequencies.forEach(f => {
+                const isMostFrequent = f.digit === mostFrequentDigit;
+                const status = isMostFrequent ? 'Most Frequent' : (f.frequency >= SIGNAL_THRESHOLD_PERCENT ? 'Strong Signal' : 'Normal');
+                const rowClass = isMostFrequent ? 'highlight-digit' : '';
+                
+                html += `<tr class="${rowClass}">
+                            <td>${f.digit}</td>
+                            <td>${f.count}</td>
+                            <td style="color: ${f.frequency > 10.0 ? 'var(--success-color)' : (f.frequency < 10.0 ? 'var(--danger-color)' : 'var(--text-light)')}">${f.frequency.toFixed(2)}%</td>
+                            <td>${status}</td>
+                        </tr>`;
+            });
+
+            html += '</tbody></table>';
+            probabilityTableContainer.innerHTML = html;
+        }
+
+        // =======================================================
+        // 3. UTILITY & EVENT HANDLERS
+        // =======================================================
+
+        function setStatus(message, color) {
+            statusMessageEl.style.display = 'block';
+            statusMessageEl.textContent = message;
+            statusMessageEl.style.backgroundColor = color ? `${color}40` : 'rgba(255, 255, 255, 0.1)';
+        }
+
+        function updateStartStopButton() {
+            if (isRunning) {
+                startStopBtn.textContent = 'Stop Analysis';
+                startStopBtn.classList.add('stop');
+                startStopBtn.disabled = false;
+            } else {
+                startStopBtn.textContent = 'Start Analysis';
+                startStopBtn.classList.remove('stop');
+                startStopBtn.disabled = false;
+            }
+        }
+
+        // Initial setup and event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial display values
+            windowSizeDisplay.textContent = ticksInput.value;
+            updateStartStopButton();
+            
+            // Listener for window size changes
+            ticksInput.addEventListener('input', (e) => {
+                windowSize = parseInt(e.target.value, 10);
+                windowSizeDisplay.textContent = windowSize;
+                if (isRunning) {
+                    // Trim history if the new size is smaller
+                    if (tickHistory.length > windowSize) {
+                        tickHistory = tickHistory.slice(tickHistory.length - windowSize);
+                    }
+                    analyzeAndDisplay();
+                }
+            });
+
+            // Listener for Start/Stop button
+            startStopBtn.addEventListener('click', () => {
+                if (isRunning) {
+                    stopStream();
+                } else {
+                    startStream();
+                }
+            });
+            
+            // Listener for market selection change
+            marketSelect.addEventListener('change', () => {
+                // Stop and inform user to restart if currently running
+                if (isRunning) {
+                    stopStream();
+                    setStatus(`Market changed to ${marketSelect.value}. Press 'Start Analysis' to begin streaming.`, 'var(--text-secondary)');
+                }
+            });
+
+            // Initial UI update for blank state
+            const initialFrequencies = Array.from({ length: 10 }, (_, i) => ({ 
+                digit: i, 
+                count: 0, 
+                frequency: 0.0 
+            })).sort((a, b) => a.digit - b.digit); 
+            
+            renderProbabilityTable(initialFrequencies, -1);
+            setStatus('Ready. Select options and press Start Analysis.', 'rgba(255, 255, 255, 0.1)');
+        });
+    </script>
+</body>
+</html>
