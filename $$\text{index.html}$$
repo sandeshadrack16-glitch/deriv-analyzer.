@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deriv Tick Analysis Tool</title>
+    <!-- Use Inter font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <!-- Link to external CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="header">
+        <h1>Deriv Real-Time Analysis</h1>
+        <p style="color: var(--text-secondary);">Digits Frequency and Signal Generator (Range Break Indices)</p>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="marketSelect">Select Market:</label>
+            <select id="marketSelect">
+                <option value="R_10">Range Break 10 (R_10)</option>
+                <option value="R_25" selected>Range Break 25 (R_25)</option>
+                <option value="R_50">Range Break 50 (R_50)</option>
+                <option value="R_100">Range Break 100 (R_100)</option>
+            </select>
+        </div>
+        
+        <div class="control-group" style="min-width: 250px;">
+            <label for="ticksInput">Analysis Window Size (Ticks): <span id="windowSizeDisplay" class="range-display">64</span></label>
+            <div style="display: flex; align-items: center; width: 100%;">
+                <input type="range" id="ticksInput" min="10" max="100" value="64" step="1">
+            </div>
+        </div>
+
+        <button id="startStopBtn" class="btn">Start Analysis</button>
+    </div>
+
+    <div id="statusMessage" class="status-msg" style="display: none;"></div>
+
+    <div class="dashboard-grid">
+        <!-- 1. Signal Card -->
+        <div id="signalCard" class="card signal-card">
+            <h3>Signal Overview</h3>
+            <div class="signal-container">
+                <div id="signalDigit" class="signal-digit">--</div>
+                <div id="signalText" class="signal-text">Waiting for Data</div>
+                <div id="entrySignal" class="entry-signal"></div>
+            </div>
+        </div>
+        
+        <!-- 2. Data and Probability -->
+        <div class="card">
+            <h3>Tick Data & Probability</h3>
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">Last <span id="currentWindowSize">0</span> Ticks Analysed</p>
+            
+            <h4>Tick History (Latest Digit)</h4>
+            <div id="tickHistory" class="history-list">
+                <!-- Digits will be injected here -->
+            </div>
+
+            <h4>Digits Frequency Table</h4>
+            <div id="probabilityTableContainer">
+                <!-- Table will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Link to external JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
