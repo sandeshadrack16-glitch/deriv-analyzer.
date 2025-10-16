@@ -1,0 +1,283 @@
+/* General Setup */
+:root {
+    --bg-dark: #1e1e1e;
+    --bg-card: #2a2a2e;
+    --text-light: #f4f4f4;
+    --text-accent: #00cc88;
+    --text-secondary: #aaaaaa;
+    --border-color: #3e3e42;
+    --danger-color: #ff4d4f;
+    --success-color: #00cc88;
+    --shadow-light: rgba(0, 0, 0, 0.4);
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Header and Controls */
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 900px;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg-card);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px var(--shadow-light);
+    margin-bottom: 30px;
+    width: 100%;
+    max-width: 900px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+label {
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+}
+
+select, input[type="range"], input[type="number"] {
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: border-color 0.3s;
+    height: 38px;
+}
+
+select:focus, input:focus {
+    border-color: var(--text-accent);
+    outline: none;
+}
+
+input[type="range"] {
+    width: 150px;
+    padding: 0;
+    height: auto;
+}
+
+.range-display {
+    font-size: 1rem;
+    padding: 0 10px;
+    min-width: 30px;
+    text-align: center;
+    color: var(--text-accent);
+    font-weight: 600;
+}
+
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px var(--shadow-light);
+    min-width: 150px;
+}
+
+#startStopBtn {
+    background-color: var(--success-color);
+    color: var(--bg-dark);
+}
+
+#startStopBtn:hover {
+    background-color: #00e099;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 204, 136, 0.4);
+}
+
+#startStopBtn.stop {
+    background-color: var(--danger-color);
+    color: var(--text-light);
+}
+
+#startStopBtn.stop:hover {
+    background-color: #ff6e70;
+    box-shadow: 0 4px 8px rgba(255, 77, 79, 0.4);
+}
+
+/* Dashboard Layout */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+}
+
+@media (min-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr 1.5fr;
+    }
+}
+
+/* Card Styles */
+.card {
+    background-color: var(--bg-card);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px var(--shadow-light);
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+}
+
+.card h3 {
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+    color: var(--text-accent);
+    font-weight: 500;
+}
+
+/* Signal Card */
+.signal-card {
+    text-align: center;
+}
+
+.signal-container {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.signal-digit {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: var(--success-color);
+    color: var(--bg-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.5rem;
+    font-weight: 800;
+    box-shadow: 0 0 15px rgba(0, 204, 136, 0.6);
+    animation: pulse 1.5s infinite alternate;
+}
+
+.signal-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-light);
+}
+
+.entry-signal {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--danger-color);
+    min-height: 1.5rem; /* Reserve space */
+}
+
+.entry-signal.active {
+    color: var(--success-color);
+    animation: bounce 0.5s infinite alternate;
+}
+
+/* History and Probability Table */
+.history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 30px;
+    max-height: 90px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.tick-digit {
+    background-color: var(--border-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Table Styling */
+.probability-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.probability-table th, .probability-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+.probability-table th {
+    background-color: var(--border-color);
+    color: var(--text-accent);
+}
+.highlight-digit {
+    background-color: rgba(0, 204, 136, 0.2);
+    color: var(--text-light);
+    font-weight: 700;
+}
+
+/* Keyframes for animations */
+@keyframes pulse {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(1.05); opacity: 0.85; }
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-3px); }
+}
+
+/* Utility */
+.status-msg {
+    text-align: center;
+    padding: 10px;
+    border-radius: 6px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+}
+
+/* Scrollbar styling for history */
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background-color: var(--text-accent);
+    border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: var(--bg-card);
+}
